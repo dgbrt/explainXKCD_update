@@ -35,29 +35,33 @@ my $date;
 my $day;
 my @all_comics_old_list;
 my $all_comics_line;
-
+my $num;
 
 binmode STDOUT, ':utf8';
 
 if ($#ARGV != 1)
 {
     print "usage: xkcd username password\n";
-    exit;
+    exit(0);
 }
 
 my $user = $ARGV[0];
 my $pass = $ARGV[1];
 
 
-# If the comic was processed, do nothing.
+#################################################
+# If the comic was processed this day do nothing.
+#################################################
 $date = strftime "%Y-%m-%d", localtime;
 if (-e "/opt/xkcd/$date.txt")
 {
+    ##print "This day was already processed\n";
     exit(0);
 }
 
-
+########################################################
 # Get the latest comic and extract the important content
+########################################################
 $comic_page = `curl -s http://xkcd.com/`;
 
 ($comic_num) = $comic_page =~ /Permanent link to this comic: http:\/\/xkcd.com\/(\d+)/;
@@ -83,6 +87,54 @@ $comic_titletext = decode_entities($comic_titletext);
 ($picture_name) = $picture_uri =~ /http:\/\/imgs.xkcd.com\/comics\/(.*)/;
 
 
+###################
+# Login to the wiki
+###################
+$bot = MediaWiki::Bot->new
+({
+    assert      => 'bot',
+    host        => 'explainxkcd.com',
+    ##host        => 'localhost',
+    path        => '/wiki/api.php',
+    debug       => 1, # Turn debugging on, to see what the bot is doing
+    login_data  => { username => $user, password => $pass },
+})
+|| die "Login failed";
+
+
+
+##############################
+# Tests to avoid wrong uploads
+##############################
+
+# Get the number from the LATESTCOMIC template
+$text = $bot->get_text("Template:LATESTCOMIC");
+$num = $text + 1;
+# If the number is not the next expected do nothing
+if ($comic_num != $num)
+{
+    print "ERROR: Comic number does not fit. Should be $comic_num but $num was expected.\n";
+    exit(0);
+}
+
+
+# If the page itself exists do nothing
+$text = $bot->get_text("$comic_num: $comic_name");
+if (defined($text))
+{
+    print "ERROR: Comic $comic_num: $comic_name exists.\n";
+    exit(0);
+}
+
+
+# Check for local page file, if file exists do nothing
+if (-e "/opt/xkcd/$comic_num.txt")
+{
+    print "ERROR: Local file exists.\n";
+    exit(0);
+}
+
+
 # Download the new picture
 `curl -s $picture_uri -o /opt/xkcd/$picture_name`;
 
@@ -94,7 +146,7 @@ print COMICPAGE "$date\n";
 close(COMICPAGE);
 
 
-# Create the local page file
+# Create the local page file (just for further possible investigations)
 $day = strftime "%e", localtime;
 $date = strftime "%B $day, %Y", localtime;
 open(COMICPAGE, ">/opt/xkcd/$comic_num.txt");
@@ -116,7 +168,8 @@ print COMICPAGE "{{comic discussion}}\n";
 print COMICPAGE "<!-- Include any categories below this line. -->\n";
 close(COMICPAGE);
 
-# Log file
+
+# Local log file
 $date = strftime "%Y-%m-%d-%H:%M:%S", localtime;
 open(COMICLOG, ">>/opt/xkcd/000_comic_log.txt");
 print COMICLOG "$date:";
@@ -126,18 +179,10 @@ print COMICLOG " $picture_name\n";
 close(COMICLOG);
 
 
-# Login to the wiki
-$bot = MediaWiki::Bot->new
-({
-    assert      => 'bot',
-    host        => 'explainxkcd.com',
-    ##host        => 'localhost',
-    path        => '/wiki/api.php',
-    debug       => 1, # Turn debugging on, to see what the bot is doing
-    login_data  => { username => $user, password => $pass },
-})
-|| die "Login failed";
 
+############################################
+## If no EXIT criteria did match, do the job
+############################################
 
 # Upload the picture
 $bot->upload
@@ -200,7 +245,7 @@ $bot->edit
 || die "Comic page failed";
 
 # Template LATESTCOMIC
-$text = "$comic_num\n";
+$text = "$comic_num";
 $bot->edit
 ({
     page    => "Template:LATESTCOMIC",
@@ -216,15 +261,14 @@ $text = $bot->get_text('List of all comics');
 
 $text = "";
 $date = strftime "%Y-%m-%d", localtime;
+$picture_name =~ s/\_/ /g;
 
-my $count = 0;
 foreach $all_comics_line (@all_comics_old_list)
 {
-    $count += 1;
-    if ($count == 13)
+    if ($all_comics_line eq "!Date<onlyinclude>")
     {
-        $text .= "{{comicsrow|$comic_num|$date|$comic_name}}";
         $text .= "$all_comics_line\n";
+        $text .= "{{comicsrow|$comic_num|$date|$comic_name|$picture_name}}\n";
     }
     else
     {
