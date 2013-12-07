@@ -21,6 +21,9 @@ use POSIX qw(strftime);
 use HTML::Entities;
 use MediaWiki::Bot;
 
+use constant false => 0;
+use constant true  => 1;
+
 my $bot;
 my $comic_page;
 my $comic_num;
@@ -94,7 +97,7 @@ $bot = MediaWiki::Bot->new
 ({
     assert      => 'bot',
     host        => 'explainxkcd.com',
-    ##host        => 'localhost',
+    ###host        => 'localhost',
     path        => '/wiki/api.php',
     debug       => 1, # Turn debugging on, to see what the bot is doing
     login_data  => { username => $user, password => $pass },
@@ -199,6 +202,8 @@ $bot->edit
 ({
     page    => $comic_name,
     text    => $text,
+    minor   => false,
+    bot     => true,
     summary => "Created by dgbrtBOT",
 })
 || die "Comic name failed";
@@ -209,6 +214,8 @@ $bot->edit
 ({
     page    => $comic_num,
     text    => $text,
+    minor   => false,
+    bot     => true,
     summary => "Created by dgbrtBOT",
 })
 || die "Comic number failed";
@@ -227,19 +234,20 @@ $text = <<END;
 }}
 
 ==Explanation==
-{{incomplete}}
+{{incomplete|Created by a BOT}}
 
 ==Transcript==
 {{incomplete transcript}}
 
 {{comic discussion}}
-<!-- Include any categories below this line. -->
 END
 
 $bot->edit
 ({
     page    => "$comic_num: $comic_name",
     text    => $text,
+    minor   => false,
+    bot     => true,
     summary => "Created by dgbrtBOT",
 })
 || die "Comic page failed";
@@ -250,6 +258,8 @@ $bot->edit
 ({
     page    => "Template:LATESTCOMIC",
     text    => $text,
+    minor   => false,
+    bot     => true,
     summary => "Created by dgbrtBOT",
 })
 || die "LATESTCOMIC failed";
@@ -280,6 +290,8 @@ $bot->edit
 ({
     page    => 'List of all comics',
     text    => $text,
+    minor   => false,
+    bot     => true,
     summary => 'Created by dgbrtBOT',
 })
 || die "List of all comics";
