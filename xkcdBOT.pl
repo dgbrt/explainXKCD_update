@@ -234,7 +234,7 @@ $text = <<END;
 }}
 
 ==Explanation==
-{{incomplete|Created by a BOT}}
+{{incomplete|Created by a BOT - Please change this comment when editing this page.}}
 
 ==Transcript==
 {{incomplete transcript}}
@@ -260,7 +260,7 @@ $bot->edit
     text    => $text,
     minor   => false,
     bot     => true,
-    summary => "Created by dgbrtBOT",
+    summary => "Changed by dgbrtBOT",
 })
 || die "LATESTCOMIC failed";
 
@@ -292,7 +292,7 @@ $bot->edit
     text    => $text,
     minor   => false,
     bot     => true,
-    summary => 'Created by dgbrtBOT',
+    summary => 'Changed by dgbrtBOT',
 })
 || die "List of all comics";
 
