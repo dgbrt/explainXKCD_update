@@ -191,6 +191,7 @@ close(COMICLOG);
 # Upload the picture
 $bot->upload
 ({
+	data	=> "==License==\n{{XKCD file}}\n[[Category:Comic images]]",
     file    => "/opt/xkcd/$picture_name",
     title   => "$picture_name"
 })
