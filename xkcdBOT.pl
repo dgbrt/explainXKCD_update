@@ -39,6 +39,7 @@ my $day;
 my @all_comics_old_list;
 my $all_comics_line;
 my $num;
+my $name_test; # Used to check if comicsrow will generate the correct image link.
 
 binmode STDOUT, ':utf8';
 
@@ -190,6 +191,7 @@ close(COMICLOG);
 # Upload the picture
 $bot->upload
 ({
+	data	=> "==License==\n{{XKCD file}}\n[[Category:Comic images]]",
     file    => "/opt/xkcd/$picture_name",
     title   => "$picture_name"
 })
@@ -272,13 +274,23 @@ $text = $bot->get_text('List of all comics');
 $text = "";
 $date = strftime "%Y-%m-%d", localtime;
 $picture_name =~ s/\_/ /g;
+$name_test = $comic_name;	# This may be longer than it needs to be.
+$name_test = s/\_/ /g;		# In my defence, I have 20 minutes of Perl
+$name_test = lc($name_test);# experience.
 
 foreach $all_comics_line (@all_comics_old_list)
 {
     if ($all_comics_line eq "!Date<onlyinclude>")
     {
         $text .= "$all_comics_line\n";
-        $text .= "{{comicsrow|$comic_num|$date|$comic_name|$picture_name}}\n";
+        if ($picture_name eq $name_test)
+        {
+			$text .= "{{comicsrow|$comic_num|$date|$comic_name}}\n";
+		}
+		else
+		{
+			$text .= "{{comicsrow|$comic_num|$date|$comic_name|$picture_name}}\n";
+		}
     }
     else
     {
