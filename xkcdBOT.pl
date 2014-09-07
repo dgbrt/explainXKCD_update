@@ -189,14 +189,14 @@ close(COMICLOG);
 ############################################
 
 # Upload the picture
-$bot->upload
+$bot->edit
 ({
-	data	=> "==License==\n{{XKCD file}}\n[[Category:Comic images]]",
-    file    => "/opt/xkcd/$picture_name",
-    title   => "$picture_name"
+	action	=> 'upload',
+	filename=> "$picture_name",
+	file	=> "/opt/xkcd/$picture_name",
+	text	=> "==License==\n{{XKCD file}}\n[[Category:Comic images]]",
 })
 || die "Picture upload failed";
-
 
 # Comic name
 $text = "#REDIRECT [[$comic_num: $comic_name]]\n";
@@ -274,9 +274,9 @@ $text = $bot->get_text('List of all comics');
 $text = "";
 $date = strftime "%Y-%m-%d", localtime;
 $picture_name =~ s/\_/ /g;
-$name_test = $comic_name;	# This may be longer than it needs to be.
-$name_test = s/\_/ /g;		# In my defence, I have 20 minutes of Perl
-$name_test = lc($name_test);# experience.
+$name_test = $comic_name;
+$name_test = s/\_/ /g;
+$name_test = lc($name_test);
 
 foreach $all_comics_line (@all_comics_old_list)
 {
@@ -307,4 +307,3 @@ $bot->edit
     summary => 'Created by dgbrtBOT',
 })
 || die "List of all comics";
-
