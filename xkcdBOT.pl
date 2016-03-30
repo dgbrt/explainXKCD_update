@@ -30,7 +30,7 @@ my $comic_num;
 my $comic_name;
 my $picture_name;
 my $picture_uri;
-my $comic_titletext;
+my $comic_titletext = "";
 my $raw;
 my %atts;
 my $text;
@@ -65,6 +65,9 @@ if (-e "/opt/xkcd/$date.txt")
 ########################################################
 # Get the latest comic and extract the important content
 ########################################################
+
+###$date = strftime "%Y-%m-%d", localtime;
+
 $comic_page = `curl -s http://xkcd.com/`;
 
 ($comic_num) = $comic_page =~ /Permanent link to this comic: http:\/\/xkcd.com\/(\d+)/;
@@ -82,6 +85,18 @@ while( $comic_page =~ /<img\s+([^>]+)>/g )
     {
 	$comic_titletext = $atts{ "title" };
     }
+    if( "http://".$atts{ "src" } eq $picture_uri )
+    {
+	$comic_titletext = $atts{ "title" };
+    }
+    if( "http:/".$atts{ "src" } eq $picture_uri )
+    {
+	$comic_titletext = $atts{ "title" };
+    }
+    if( "http:".$atts{ "src" } eq $picture_uri )
+    {
+	$comic_titletext = $atts{ "title" };
+    }
 }
 
 $comic_titletext = decode_entities($comic_titletext);
@@ -96,11 +111,13 @@ $comic_titletext = decode_entities($comic_titletext);
 $bot = MediaWiki::Bot->new
 ({
     assert      => 'bot',
+    protocol    => 'https',
     host        => 'explainxkcd.com',
     ###host        => 'localhost',
     path        => '/wiki/api.php',
     debug       => 1, # Turn debugging on, to see what the bot is doing
     login_data  => { username => $user, password => $pass },
+    operator    => 'dgbrtBOT',
 })
 || die "Login failed";
 
@@ -112,11 +129,20 @@ $bot = MediaWiki::Bot->new
 
 # Get the number from the LATESTCOMIC template
 $text = $bot->get_text("Template:LATESTCOMIC");
+# Remove some text
+$text =~ s/\<noinclude\>The latest \[\[xkcd\]\] comic is number\:\<\/noinclude\> //;
 $num = $text + 1;
+
 # If the number is not the next expected do nothing
 if ($comic_num != $num)
 {
-    print "ERROR: Comic number does not fit. Should be $comic_num but $num was expected.\n";
+    print "ERROR: Comic number does not fit. It is $comic_num but $num was expected.\n";
+    $comic_page = `curl -s http://xkcd.com/$num`;
+    #print "ERROR-HANDLING: $comic_page\n";
+    #open(COMICLOG, ">>/opt/xkcd/000_comic_log.txt");
+    #print COMICLOG "  Comic-Num (NEW): $num\n";
+    #print COMICLOG "  Comic-Test: $comic_page\n";
+    #close(COMICLOG);
     exit(0);
 }
 
@@ -125,8 +151,27 @@ if ($comic_num != $num)
 $text = $bot->get_text("$comic_num: $comic_name");
 if (defined($text))
 {
-    print "ERROR: Comic $comic_num: $comic_name exists.\n";
-    exit(0);
+    $text = $bot->get_text("$comic_name");
+    if (defined($text))
+    {
+    	$text = $bot->get_text("$comic_num");
+    	if (defined($text))
+    	{
+            print "ERROR: Comic $comic_num: $comic_name exists.\n";
+
+	    # Create the file to stop the polling if upload is already done
+	    $date = strftime "%Y-%m-%d", localtime;
+	    open(COMICPAGE, ">/opt/xkcd/$date.txt");
+	    print COMICPAGE "$date\n";
+	    close(COMICPAGE);
+
+            exit(0);
+    	}
+    }
+    open(COMICLOG, ">>/opt/xkcd/000_comic_log.txt");
+    print COMICLOG "  Comic: $comic_num: $comic_name\n";
+    print COMICLOG "     Upload while some parts of the main page exist!\n";
+    close(COMICLOG);
 }
 
 
@@ -190,7 +235,7 @@ close(COMICLOG);
 # Upload the picture
 $bot->upload
 ({
-    data    => "==License==\n{{XKCD file}}\n[[Category:Comic images]]",
+    ###data    => "==License==\n{{XKCD file}}\n[[Category:Comic images]]",
     file    => "/opt/xkcd/$picture_name",
     title   => "$picture_name"
 })
@@ -253,12 +298,26 @@ $bot->edit
 })
 || die "Comic page failed";
 
+# Talk page
+$text = <<END;
+<!--Please sign your posts with ~~~~-->
+END
+
+$bot->edit
+({
+    page    => "Talk:$comic_num: $comic_name",
+    text    => $text,
+    minor   => false,
+    bot     => true,
+    summary => "Created by dgbrtBOT",
+});
+
 # Template LATESTCOMIC
 $text = "$comic_num";
 $bot->edit
 ({
     page    => "Template:LATESTCOMIC",
-    text    => $text,
+    text    => "<noinclude>The latest [[xkcd]] comic is number:</noinclude> " . $text,
     minor   => false,
     bot     => true,
     summary => "Changed by dgbrtBOT",
