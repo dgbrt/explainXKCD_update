@@ -69,6 +69,10 @@ if (-e "/opt/xkcd/$date.txt")
 ###$date = strftime "%Y-%m-%d", localtime;
 
 $comic_page = `curl -s http://xkcd.com/`;
+if( $comic_page eq "" )
+{
+    $comic_page = `curl -s https://xkcd.com/`;
+}
 
 ($comic_num) = $comic_page =~ /Permanent link to this comic: http:\/\/xkcd.com\/(\d+)/;
 ($comic_name) = $comic_page =~ /<div id="ctitle">(.*)<\/div>/;
@@ -238,8 +242,9 @@ $bot->upload
     ###data    => "==License==\n{{XKCD file}}\n[[Category:Comic images]]",
     file    => "/opt/xkcd/$picture_name",
     title   => "$picture_name"
-})
-|| die "Picture upload failed";
+});
+##})
+##|| die "Picture upload failed";
 
 
 # Comic name
