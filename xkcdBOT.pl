@@ -107,6 +107,10 @@ $comic_titletext = decode_entities($comic_titletext);
 
 
 ($picture_name) = $picture_uri =~ /http:\/\/imgs.xkcd.com\/comics\/(.*)/;
+if( $picture_name eq "" )
+{
+    ($picture_name) = $picture_uri =~ /https:\/\/imgs.xkcd.com\/comics\/(.*)/;
+}
 
 
 ###################
@@ -187,7 +191,8 @@ if (-e "/opt/xkcd/$comic_num.txt")
 }
 
 
-# Download the new picture
+# Download the new picture, always https
+$picture_uri =~ s/http:/https:/;
 `curl -s $picture_uri -o /opt/xkcd/$picture_name`;
 
 
