@@ -25,11 +25,11 @@ use constant false => 0;
 use constant true  => 1;
 
 my $bot;
-my $comic_page;
-my $comic_num;
-my $comic_name;
-my $picture_name;
-my $picture_uri;
+my $comic_page = "";
+my $comic_num = "";
+my $comic_name = "";
+my $picture_name = "";
+my $picture_uri = "";
 my $comic_titletext = "";
 my $raw;
 my %atts;
@@ -75,6 +75,10 @@ if( $comic_page eq "" )
 }
 
 ($comic_num) = $comic_page =~ /Permanent link to this comic: http:\/\/xkcd.com\/(\d+)/;
+if( !defined $comic_num || length $comic_num == 0 )
+{
+    ($comic_num) = $comic_page =~ /Permanent link to this comic: https:\/\/xkcd.com\/(\d+)/;
+}
 ($comic_name) = $comic_page =~ /<div id="ctitle">(.*)<\/div>/;
 ($picture_uri) = $comic_page =~ /Image URL \(for hotlinking\/embedding\): (.*)/;
 
@@ -101,13 +105,25 @@ while( $comic_page =~ /<img\s+([^>]+)>/g )
     {
 	$comic_titletext = $atts{ "title" };
     }
+    if( "https://".$atts{ "src" } eq $picture_uri )
+    {
+	$comic_titletext = $atts{ "title" };
+    }
+    if( "https:/".$atts{ "src" } eq $picture_uri )
+    {
+	$comic_titletext = $atts{ "title" };
+    }
+    if( "https:".$atts{ "src" } eq $picture_uri )
+    {
+	$comic_titletext = $atts{ "title" };
+    }
 }
 
 $comic_titletext = decode_entities($comic_titletext);
 
 
 ($picture_name) = $picture_uri =~ /http:\/\/imgs.xkcd.com\/comics\/(.*)/;
-if( $picture_name eq "" )
+if( !defined $picture_name || length $picture_name == 0 )
 {
     ($picture_name) = $picture_uri =~ /https:\/\/imgs.xkcd.com\/comics\/(.*)/;
 }
@@ -145,7 +161,7 @@ $num = $text + 1;
 if ($comic_num != $num)
 {
     print "ERROR: Comic number does not fit. It is $comic_num but $num was expected.\n";
-    $comic_page = `curl -s http://xkcd.com/$num`;
+    #$comic_page = `curl -s http://xkcd.com/$num`;
     #print "ERROR-HANDLING: $comic_page\n";
     #open(COMICLOG, ">>/opt/xkcd/000_comic_log.txt");
     #print COMICLOG "  Comic-Num (NEW): $num\n";
