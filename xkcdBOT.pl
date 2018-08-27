@@ -20,6 +20,8 @@ use warnings;
 use POSIX qw(strftime);
 use HTML::Entities;
 use MediaWiki::Bot;
+use Encode;
+use Encode::DoubleEncodedUTF8;
 
 use constant false => 0;
 use constant true  => 1;
@@ -80,6 +82,7 @@ if( !defined $comic_num || length $comic_num == 0 )
     ($comic_num) = $comic_page =~ /Permanent link to this comic: https:\/\/xkcd.com\/(\d+)/;
 }
 ($comic_name) = $comic_page =~ /<div id="ctitle">(.*)<\/div>/;
+$comic_name = decode("utf-8-de", $comic_name);  # fix double-utf-8-encoded string
 ($picture_uri) = $comic_page =~ /Image URL \(for hotlinking\/embedding\): (.*)/;
 
 while( $comic_page =~ /<img\s+([^>]+)>/g )
@@ -119,7 +122,7 @@ while( $comic_page =~ /<img\s+([^>]+)>/g )
     }
 }
 
-$comic_titletext = decode_entities($comic_titletext);
+$comic_titletext = decode("utf-8-de", decode_entities($comic_titletext));
 
 
 ($picture_name) = $picture_uri =~ /http:\/\/imgs.xkcd.com\/comics\/(.*)/;
