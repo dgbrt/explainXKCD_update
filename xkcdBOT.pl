@@ -19,6 +19,7 @@ use strict;
 use warnings;
 use POSIX qw(strftime);
 use HTML::Entities;
+use Encode;
 use MediaWiki::Bot;
 
 use constant false => 0;
@@ -119,7 +120,7 @@ while( $comic_page =~ /<img\s+([^>]+)>/g )
     }
 }
 
-$comic_titletext = decode_entities($comic_titletext);
+$comic_titletext = decode_entities(decode('utf-8', $comic_titletext));
 
 
 ($picture_name) = $picture_uri =~ /http:\/\/imgs.xkcd.com\/comics\/(.*)/;
@@ -137,8 +138,10 @@ $bot = MediaWiki::Bot->new
     assert      => 'bot',
     protocol    => 'https',
     host        => 'explainxkcd.com',
-    ###host        => 'localhost',
-    path        => '/wiki/api.php',
+    ##protocol    => 'http',
+    ##host        => 'localhost',
+    ###path        => '/wiki/api.php',
+    path        => '/wiki',
     debug       => 1, # Turn debugging on, to see what the bot is doing
     login_data  => { username => $user, password => $pass },
     operator    => 'dgbrtBOT',
@@ -169,7 +172,6 @@ if ($comic_num != $num)
     #close(COMICLOG);
     exit(0);
 }
-
 
 # If the page itself exists do nothing
 $text = $bot->get_text("$comic_num: $comic_name");
@@ -223,13 +225,17 @@ close(COMICPAGE);
 $day = strftime "%e", localtime;
 $date = strftime "%B $day, %Y", localtime;
 open(COMICPAGE, ">/opt/xkcd/$comic_num.txt");
-print COMICPAGE "{{comic\n";
-print COMICPAGE "| number    = $comic_num\n";
-print COMICPAGE "| date      = $date\n";
-print COMICPAGE "| title     = $comic_name\n";
-print COMICPAGE "| image     = $picture_name\n";
-print COMICPAGE "| titletext = $comic_titletext\n";
-print COMICPAGE "}}\n";
+do
+{
+    no warnings; #Supress the 'wide character' warning
+    print COMICPAGE "{{comic\n";
+    print COMICPAGE "| number    = $comic_num\n";
+    print COMICPAGE "| date      = $date\n";
+    print COMICPAGE "| title     = $comic_name\n";
+    print COMICPAGE "| image     = $picture_name\n";
+    print COMICPAGE "| titletext = $comic_titletext\n";
+    print COMICPAGE "}}\n";
+};
 print COMICPAGE "\n";
 print COMICPAGE "==Explanation==\n";
 print COMICPAGE "{{incomplete}}\n";
@@ -306,10 +312,10 @@ $text = <<END;
 }}
 
 ==Explanation==
-{{incomplete|Created by a BOT - Please change this comment when editing this page.}}
+{{incomplete|Created by a BOT - Please change this comment when editing this page. Do NOT delete this tag too soon.}}
 
 ==Transcript==
-{{incomplete transcript}}
+{{incomplete transcript|Do NOT delete this tag too soon.}}
 
 {{comic discussion}}
 END
@@ -326,7 +332,7 @@ $bot->edit
 
 # Talk page
 $text = <<END;
-<!--Please sign your posts with ~~~~-->
+<!--Please sign your posts with ~~~~ and don't delete this text. New comments should be added at the bottom.-->
 END
 
 $bot->edit
